@@ -1,0 +1,58 @@
+pipeline {
+  agent none
+
+  stages {
+    stage('Checkout') {
+      agent any
+      steps {
+        git branch: 'main', url: 'https://github.com/devsecops2341/test-maven-java-spring-hello-webapp'
+      }
+    }
+    stage('Build') {
+      agent {
+        docker { image 'maven:3-openjdk-17' }
+      }
+      steps {
+        sh 'mvn clean package'
+      }
+    }
+    stage('Test') {
+      agent {
+        docker { image 'maven:3-openjdk-17' }
+      }
+      steps {
+        sh 'mvn test'
+      }
+    }
+    stage('Build Docker Image') {
+      agent any
+      steps {
+        sh 'docker image build -t tomcat:hello .'
+      }
+    }
+    stage('Tag Docker Image') {
+      agent any
+      steps {
+        sh 'docker image tag tomcat:hello devsecops2341/tomcat:v1'
+        sh 'docker image tag tomcat:hello devsecops2341/tomcat:latest'
+      }
+    }
+    stage('Publish Docker Image') {
+      agent any
+      steps {
+        withDockerRegistry(credentialsId: 'docker-hub-token', url: 'https://index.docker.io/v1/') {
+          sh 'docker image push devsecops2341/tomcat:$BUILDNUMBER'
+          sh 'docker image push devsecops2341/tomcat:latest'
+        }
+      }
+    }
+    stage('Run Docker Container') {
+      agent {
+        docker { image 'docker:dind' }
+      }
+      steps {
+        sh 'docker -H tcp://192.168.56.103:2375 container run --detach --name <CONTAINER_NAME> -p 80:8080 <IMAGE>:$BUILD_NUMBER'
+      }
+    }
+  }
+}
