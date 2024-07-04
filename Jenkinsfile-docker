@@ -33,7 +33,7 @@ pipeline {
     stage('Tag Docker Image') {
       agent any
       steps {
-        sh 'docker image tag tomcat:hello devsecops2341/tomcat:v1'
+        sh 'docker image tag tomcat:hello devsecops2341/tomcat:$BUILD_NUMBER'
         sh 'docker image tag tomcat:hello devsecops2341/tomcat:latest'
       }
     }
@@ -51,7 +51,7 @@ pipeline {
         docker { image 'docker:dind' }
       }
       steps {
-        sh 'docker -H tcp://192.168.56.103:2375 container run --detach --name <CONTAINER_NAME> -p 80:8080 <IMAGE>:$BUILD_NUMBER'
+        sh 'docker -H tcp://192.168.56.103:2375 container run --detach --name webserver -p 80:8080 devsecops2341/tomcat:$BUILD_NUMBER'
       }
     }
   }
